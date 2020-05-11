@@ -38,7 +38,7 @@ The code below queries all mqtt brokers available on the local network and print
     wifi.sta.getip()
     wifi.eventmon.register(wifi.eventmon.STA_GOT_IP, function(T)
         print("\n\tSTA - GOT IP".."\n\tStation IP: "..T.IP)
-        mc.mdns_query( service_to_query, query_timeout, T.IP, query_result_handler)
+        mc.query( service_to_query, query_timeout, T.IP, query_result_handler)
     end)
 ```
 If called without parameters, `query` returns all available services after the default timeout of 2 seconds. Additional examples can be found in the `examples` subdirectory.
@@ -64,7 +64,7 @@ _query_ takes up to two parameters:
 
 * **timeout**: Timeout in seconds waiting for mDNS responses. If this parameter is missing or if it evaluates to `nil`, _mdns\_resolve_ uses the dafault timeout of 2 seconds.
 
-* **own_ip**: Timeout in seconds waiting for mDNS responses. If this parameter is missing or if it evaluates to `nil`, _mdns\_resolve_ uses the dafault timeout of 2 seconds.
+* **own_ip**: Own IP address
 
 * **callback**: If _query_ succeeds, an associateve array of service descriptors is returned as a Lua table to the callback method which should expect two parameters like this `callback(err,result)`. Please note that the array may be empty if there is no mDNS service available on the local network. In case of error, _err_ is populated ad result is nil.
 

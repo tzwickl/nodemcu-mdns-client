@@ -1,18 +1,15 @@
 --[[
-
     Original work Copyright (c) 2015 Frank Edelhaeuser
     Modified work Copyright (c) 2017 Uday G
-    
+
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
     in the Software without restriction, including without limitation the rights
     to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
     copies of the Software, and to permit persons to whom the Software is
     furnished to do so, subject to the following conditions:
-
     The above copyright notice and this permission notice shall be included in all
     copies or substantial portions of the Software.
-
     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
     IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
     FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -20,23 +17,22 @@
     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
-    
+
 ]]--
 
 local mdnsclient = {}
-do
 
-local function mdns_make_query(service)
+function mdns_make_query(service)
     -- header: transaction id, flags, qdcount, ancount, nscount, nrcount
     local data = '\000\000'..'\000\000'..'\000\001'..'\000\000'..'\000\000'..'\000\000'
     -- question section: qname, qtype, qclass
-    for n in service:gfind('([^\.]+)') do
+    for n in string.gmatch(service, "([^.]+)") do
         data = data..string.char(#n)..n
     end
     return data..string.char(0)..'\000\012'..'\000\001'
 end
 
-local function mdns_parse(service, data, answers)
+function mdns_parse(service, data, answers)
 
     --- Helper function: parse DNS name field, supports pointers
     -- @param data     received datagram
@@ -193,9 +189,9 @@ end
 --                      ipv4: IPv4 address
 --                      ipv6: IPv6 address
 --
--- @return          Nothing 
+-- @return          Nothing
 --
-function query(service, timeout,own_ip,callback)
+function mdnsclient.query(service, timeout, own_ip, callback)
 
     -- browse all services if no service name specified
     local browse = false
@@ -232,9 +228,9 @@ function query(service, timeout,own_ip,callback)
     udpSocket:listen()
     port, ip = udpSocket:getaddr()
     local mdns_query = mdns_make_query(service)
-    udpSocket:send(mdns_port, mdns_multicast_ip,mdns_query)
+    udpSocket:send(mdns_port, mdns_multicast_ip, mdns_query)
 
-    tmr.alarm(0,timeout*1000,tmr.ALARM_SINGLE, function()
+    tmr.create():alarm(timeout*1000,tmr.ALARM_SINGLE, function()
         --once the timer is over, cleanup thesockets and collect the results
         udpSocket:close()
         net.multicastLeave(own_ip,mdns_multicast_ip)
@@ -244,6 +240,7 @@ function query(service, timeout,own_ip,callback)
             local pos = k:find('%.')
             if (pos and (pos > 1) and (pos < #k)) then
                 local name, svc = k:sub(1, pos - 1), k:sub(pos + 1)
+                print("Name: "..name.." Service: "..svc)
                 if (browse) or (svc == service) then
                     if (v.target) then
                         if (answers.a[v.target]) then
@@ -275,7 +272,7 @@ end
 
 -- query results and 1 based index to identify the result to return when there are more than one matches
 -- query results and 1 based index to identify the result to return when there are more than one matches
-local extractIpAndPortFromResults = function(results,index)
+function mdnsclient.extractIpAndPortFromResults(results,index)
     local ip,port
 
     local result_index = 1
@@ -284,6 +281,8 @@ local extractIpAndPortFromResults = function(results,index)
         for k1,v1 in pairs(v) do
             print('  '..k1..': '..v1)
             if(k1=="ipv4") then ip = v1 end
+            if(k1=="ip") then ip = v1 end
+            if(k1=="ipv6") then ip = v1 end
             if(k1=="port") then port = v1 end
         end
 
@@ -297,10 +296,4 @@ local extractIpAndPortFromResults = function(results,index)
     return nil , nil
 end
 
-mdnsclient = {
-    extractIpAndPortFromResults=extractIpAndPortFromResults,
-    query=query
-}
-
-end
 return mdnsclient
